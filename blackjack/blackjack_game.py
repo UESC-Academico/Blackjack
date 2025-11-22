@@ -86,6 +86,12 @@ class BlackjackGame:
         self.current_player = 0
         self.game_state = "PLAYING"  # PLAYING, FINISHED
         self.player_done = [False] * self.PLAYERS
+        self.board = []  # usado após finalizar
+
+        # Fontes
+        self.font_large = pygame.font.Font(None, 48)
+        self.font_medium = pygame.font.Font(None, 36)
+        self.font_small = pygame.font.Font(None, 28)
 
         # Debug inicial
         print("\nCartas iniciais distribuídas:")
@@ -94,12 +100,25 @@ class BlackjackGame:
             for carta in self.hands[player_idx][0]:
                 print(f"  - {carta.show_card()}")
 
-            # Fontes
-            self.font_large = pygame.font.Font(None, 48)
-            self.font_medium = pygame.font.Font(None, 36)
-            self.font_small = pygame.font.Font(None, 28)
-            # Checa blackjack inicial
-            self.check_initial_blackjack()
+        # Checa blackjack inicial
+        self.check_initial_blackjack()
+
+    def reset_game(self):
+        """Reinicia o jogo para uma nova partida."""
+        print("\n==== Reiniciando jogo ====\n")
+        self.deck = createShuffledDeck(False)
+        self.hands = createHands(self.deck, self.PLAYERS)
+        self.current_player = 0
+        self.game_state = "PLAYING"
+        self.player_done = [False] * self.PLAYERS
+        self.board = []
+        # Debug inicial
+        print("Cartas iniciais distribuídas:")
+        for player_idx in range(self.PLAYERS):
+            print(f"Jogador {player_idx + 1}:")
+            for carta in self.hands[player_idx][0]:
+                print(f"  - {carta.show_card()}")
+        self.check_initial_blackjack()
 
     def load_card_images(self):
         """Carrega todas as imagens de cartas PNG"""
@@ -145,6 +164,8 @@ class BlackjackGame:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
+                elif event.key == pygame.K_r and self.game_state == "FINISHED":
+                    self.reset_game()
                 elif event.key == pygame.K_SPACE and self.game_state == "PLAYING":
                     self.deal_card(alternate=True)
                 elif event.key == pygame.K_RETURN and self.game_state == "PLAYING":
@@ -285,10 +306,11 @@ class BlackjackGame:
         """Desenha todos os elementos na tela"""
         self.screen.fill(GREEN)
 
-        # Título com fundo
+        # Título com fundo (usa midtop para evitar corte superior)
         title = self.font_large.render("♠ BLACKJACK ♥", True, YELLOW)
-        title_rect = title.get_rect(center=(self.width // 2, 40))
-        pygame.draw.rect(self.screen, BLACK, title_rect.inflate(40, 20), border_radius=10)
+        title_rect = title.get_rect(midtop=(self.width // 2, 10))
+        bg_rect = title_rect.inflate(40, 20)
+        pygame.draw.rect(self.screen, BLACK, bg_rect, border_radius=10)
         self.screen.blit(title, title_rect)
 
         # Desenha o cava (monte de cartas) - mais bonito
@@ -502,7 +524,7 @@ class BlackjackGame:
                 score_text = self.font_medium.render(linha, True, color)
                 self.screen.blit(score_text, (self.width // 2 - score_text.get_width() // 2, self.height // 2 + 20 + idx * 40))
 
-            restart_text = self.font_small.render("Pressione ESC para sair", True, WHITE)
+            restart_text = self.font_small.render("ESC: sair  |  R: jogar novamente", True, WHITE)
             self.screen.blit(restart_text, (self.width // 2 - restart_text.get_width() // 2, self.height // 2 + 120))
 
         pygame.display.flip()
