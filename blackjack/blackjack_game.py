@@ -58,7 +58,8 @@ def get_card_filename(value, naipe):
 
 class BlackjackGame:
     def __init__(self):
-        # Obtém resolução atual e define tamanho inicial proporcional
+        """Inicializa o jogo e prepara estado, fontes e imagens."""
+        # Dimensões dinâmicas da janela
         info = pygame.display.Info()
         initial_w = max(MIN_WIDTH, int(info.current_w * 0.8))
         initial_h = max(MIN_HEIGHT, int(info.current_h * 0.8))
@@ -68,37 +69,38 @@ class BlackjackGame:
         pygame.display.set_caption("Blackjack - 2 Jogadores")
         self.clock = pygame.time.Clock()
         self.running = True
-        
-        # Carrega imagens
+
+        # Imagens
         self.card_images = {}
         self.load_card_images()
-        
-        # Carrega carta de fundo
         try:
             self.card_back = pygame.image.load("Cartas/fundo.png")
             self.card_back = pygame.transform.scale(self.card_back, (120, 180))
-        except:
+        except Exception:
             self.card_back = None
-        
+
         # Estado do jogo
         self.PLAYERS = 2
         self.deck = createShuffledDeck(False)
         self.hands = createHands(self.deck, self.PLAYERS)
         self.current_player = 0
-        self.game_state = "PLAYING"  # PLAYING, REVEAL, FINISHED
+        self.game_state = "PLAYING"  # PLAYING, FINISHED
+        self.player_done = [False] * self.PLAYERS
 
-        # Debug: mostra as primeiras cartas
+        # Debug inicial
         print("\nCartas iniciais distribuídas:")
         for player_idx in range(self.PLAYERS):
             print(f"Jogador {player_idx + 1}:")
             for carta in self.hands[player_idx][0]:
                 print(f"  - {carta.show_card()}")
-        
-        # Fontes
-        self.font_large = pygame.font.Font(None, 48)
-        self.font_medium = pygame.font.Font(None, 36)
-        self.font_small = pygame.font.Font(None, 28)
-        
+
+            # Fontes
+            self.font_large = pygame.font.Font(None, 48)
+            self.font_medium = pygame.font.Font(None, 36)
+            self.font_small = pygame.font.Font(None, 28)
+            # Checa blackjack inicial
+            self.check_initial_blackjack()
+
     def load_card_images(self):
         """Carrega todas as imagens de cartas PNG"""
         print("Carregando imagens de cartas...")
@@ -144,7 +146,7 @@ class BlackjackGame:
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
                 elif event.key == pygame.K_SPACE and self.game_state == "PLAYING":
-                    self.deal_card()
+                    self.deal_card(alternate=True)
                 elif event.key == pygame.K_RETURN and self.game_state == "PLAYING":
                     self.pass_turn()
                 elif event.key == pygame.K_s and self.game_state == "PLAYING":
@@ -155,20 +157,47 @@ class BlackjackGame:
                 self.height = max(MIN_HEIGHT, event.h)
                 self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
     
-    def deal_card(self):
-        """Distribui uma carta para o jogador atual"""
+    def deal_card(self, alternate: bool = False):
+        """Distribui carta ao jogador atual; alterna turno se alternate=True."""
+        if self.player_done[self.current_player]:
+            return
         if calculateFaceUp(self.hands[self.current_player]) < 21:
             dealCards(self.hands[self.current_player], self.deck)
+        pontos = calculateFaceUp(self.hands[self.current_player])
+        # Finalização imediata em blackjack ou estouro
+        if pontos == 21:
+            print(f"\nBlackjack do Jogador {self.current_player + 1}! Finalizando jogo.")
+            self.reveal_all_cards()
+            return
+        elif pontos > 21:
+            print(f"\nJogador {self.current_player + 1} estourou ({pontos}). Jogo finalizado.")
+            self.reveal_all_cards()
+            return
+        if pontos >= 21:
+            self.player_done[self.current_player] = True
+        if alternate and self.game_state == "PLAYING":
+            self.advance_turn()
 
     def pass_turn(self):
-        """Passa a vez para o próximo jogador"""
-        self.current_player += 1
-        if self.current_player >= self.PLAYERS:
+        """Jogador faz stand e encerra sua participação."""
+        if not self.player_done[self.current_player]:
+            self.player_done[self.current_player] = True
+        self.advance_turn()
+
+    def advance_turn(self):
+        """Seleciona próximo jogador não finalizado ou encerra jogo."""
+        if all(self.player_done):
             print("\n⏳ Finalizando jogo e revelando cartas...")
             self.reveal_all_cards()
-            # Força um redesenho imediato após revelar
             self.draw()
             pygame.display.flip()
+            return
+        next_idx = (self.current_player + 1) % self.PLAYERS
+        for _ in range(self.PLAYERS):
+            if not self.player_done[next_idx]:
+                self.current_player = next_idx
+                return
+            next_idx = (next_idx + 1) % self.PLAYERS
 
     def try_split(self):
         """Tenta fazer split das cartas"""
@@ -200,36 +229,34 @@ class BlackjackGame:
                 print(f"Split não permitido: precisa ter exatamente 2 cartas (tem {len(player_hand[0])})")
 
     def reveal_all_cards(self):
-        """Revela todas as cartas, calcula pontuações reais e determina vencedor."""
-        print("\nRevelando todas as cartas...")
-        # board: [player_index, melhor_pontuacao, lista_pontuacoes_mãos, bust_flag]
-        self.board = []
+        """Calcula pontuações apenas com cartas reveladas e determina vencedor (não revela cartas viradas)."""
+        print("\nCalculando pontuação apenas de cartas reveladas...")
+        self.board = []  # [player_index, melhor_visivel, lista_pontos_maos_visiveis, bust_flag]
+
+        def pontos_visiveis_mao(chance):
+            total = 0
+            for c in chance:
+                if c.isRevealed():
+                    total += evaluateCardValue(c.getValue(), total)
+            return total
 
         for index, hand in enumerate(self.hands):
             print(f"\nJogador {index + 1}:")
             mao_scores = []
             for hand_idx, chance in enumerate(hand):
-                # Revela todas as cartas
-                for carta in chance:
-                    if not carta.isRevealed():
-                        carta.reveal_card()
-                        print(f"  Revelando: {carta.show_card()}")
-                points = revealCards(chance)
-                mao_scores.append(points)
-                print(f"  Mão {hand_idx + 1}: {points} pontos")
+                pts = pontos_visiveis_mao(chance)
+                mao_scores.append(pts)
+                print(f"  Mão {hand_idx + 1}: {pts} pontos")
 
-            # Seleciona melhor pontuação válida (<=21) ou, se todas estourarem, a menor acima de 21
             validas = [p for p in mao_scores if p <= 21]
             if validas:
                 melhor = max(validas)
                 bust = False
             else:
-                melhor = min(mao_scores)  # menor estouro
+                melhor = min(mao_scores) if mao_scores else 0
                 bust = True
-
             self.board.append([index, melhor, mao_scores, bust])
 
-        # Ordenação: primeiro não estourados por pontuação desc; depois estourados por pontuação asc
         def sort_key(entry):
             _, melhor, _, bust = entry
             return (bust, -melhor if not bust else melhor)
@@ -237,22 +264,20 @@ class BlackjackGame:
         self.board.sort(key=sort_key)
         self.game_state = "FINISHED"
 
-        # Determina vencedores (possível empate)
-        top = [e for e in self.board if not e[3]]  # não estourados
+        top = [e for e in self.board if not e[3]]
         if top:
             melhor_valor = top[0][1]
             vencedores = [e[0] for e in top if e[1] == melhor_valor]
         else:
-            # todos estouraram, menor estouro vence
             melhor_valor = self.board[0][1]
             vencedores = [e[0] for e in self.board if e[1] == melhor_valor]
 
         if len(vencedores) == 1:
-            print(f"\n🏆 Vencedor: Jogador {vencedores[0] + 1} com {melhor_valor} pontos")
+            print(f"\nVencedor: Jogador {vencedores[0] + 1} com {melhor_valor} pontos")
         else:
-            nomes = ', '.join([str(v+1) for v in vencedores])
-            print(f"\n🤝 Empate entre jogadores: {nomes} com {melhor_valor} pontos")
-        print("Placar detalhado:")
+            nomes = ', '.join(str(v+1) for v in vencedores)
+            print(f"\nEmpate: Jogadores {nomes} com {melhor_valor} pontos")
+        print("Pontuação (apenas cartas reveladas):")
         for idx, melhor, lista, bust in self.board:
             print(f" Jogador {idx+1}: mãos={lista} melhor={melhor}{' (estourou)' if bust else ''}")
 
@@ -326,12 +351,12 @@ class BlackjackGame:
             # Pontuação - ao lado do nome
             # Se o jogo terminou, calcula com todas as cartas reveladas
             if self.game_state == "FINISHED":
+                # Usa somente cartas reveladas
                 points = 0
                 for chance in self.hands[player_idx]:
                     for carta in chance:
-                        if not carta.isRevealed():
-                            carta.reveal_card()
-                    points += revealCards(chance)
+                        if carta.isRevealed():
+                            points += evaluateCardValue(carta.getValue(), points)
             else:
                 points = calculateFaceUp(self.hands[player_idx])
 
@@ -481,6 +506,20 @@ class BlackjackGame:
             self.screen.blit(restart_text, (self.width // 2 - restart_text.get_width() // 2, self.height // 2 + 120))
 
         pygame.display.flip()
+
+    def check_initial_blackjack(self):
+        """Verifica se algum jogador já inicia com blackjack (21 nas duas cartas iniciais)."""
+        if self.game_state != "PLAYING":
+            return
+        for idx, player_hand in enumerate(self.hands):
+            chance = player_hand[0]
+            total = 0
+            for carta in chance:
+                total += evaluateCardValue(carta.getValue(), total)
+            if total == 21:
+                print(f"\nBlackjack inicial do Jogador {idx + 1}! Finalizando jogo.")
+                self.reveal_all_cards()
+                break
 
     def run(self):
         """Loop principal do jogo"""
