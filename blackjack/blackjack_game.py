@@ -149,12 +149,13 @@ class BlackjackGame:
         if basename in self.card_images:
             return self.card_images[basename]
 
-        # Se não encontrar, tenta buscar por valor
+        # Se não encontrar, tenta buscar por valor aproximado
         for key in self.card_images.keys():
             if value.lower() in key.lower() and naipe.lower()[:3] in key.lower():
                 return self.card_images[key]
 
-        return self.card_back
+        # Retorna None para permitir fallback desenhado (retângulo com valor)
+        return None
     
     def handle_events(self):
         """Processa eventos"""
