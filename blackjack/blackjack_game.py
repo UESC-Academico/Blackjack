@@ -8,8 +8,9 @@ from regras import *
 pygame.init()
 
 # Constantes
-WIDTH, HEIGHT = 1080, 1080
 FPS = 60
+MIN_WIDTH = 800
+MIN_HEIGHT = 600
 
 # Cores
 WHITE = (255, 255, 255)
@@ -57,7 +58,13 @@ def get_card_filename(value, naipe):
 
 class BlackjackGame:
     def __init__(self):
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        # Obtém resolução atual e define tamanho inicial proporcional
+        info = pygame.display.Info()
+        initial_w = max(MIN_WIDTH, int(info.current_w * 0.8))
+        initial_h = max(MIN_HEIGHT, int(info.current_h * 0.8))
+        self.width = initial_w
+        self.height = initial_h
+        self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
         pygame.display.set_caption("Blackjack - 2 Jogadores")
         self.clock = pygame.time.Clock()
         self.running = True
@@ -142,6 +149,11 @@ class BlackjackGame:
                     self.pass_turn()
                 elif event.key == pygame.K_s and self.game_state == "PLAYING":
                     self.try_split()
+            elif event.type == pygame.VIDEORESIZE:
+                # Atualiza tamanho da janela mantendo mínimo
+                self.width = max(MIN_WIDTH, event.w)
+                self.height = max(MIN_HEIGHT, event.h)
+                self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
     
     def deal_card(self):
         """Distribui uma carta para o jogador atual"""
@@ -216,14 +228,13 @@ class BlackjackGame:
 
         # Título com fundo
         title = self.font_large.render("♠ BLACKJACK ♥", True, YELLOW)
-        title_rect = title.get_rect(center=(WIDTH // 2, 40))
-        # Fundo escuro para o título
+        title_rect = title.get_rect(center=(self.width // 2, 40))
         pygame.draw.rect(self.screen, BLACK, title_rect.inflate(40, 20), border_radius=10)
         self.screen.blit(title, title_rect)
 
         # Desenha o cava (monte de cartas) - mais bonito
         if self.card_back:
-            cava_x = WIDTH - 250
+            cava_x = self.width - 250
             cava_y = 100
 
             # Fundo para o cava
@@ -243,8 +254,8 @@ class BlackjackGame:
             counter = self.font_small.render(f"{len(self.deck)} cartas", True, WHITE)
             self.screen.blit(counter, (cava_x + 15, cava_y + 200))
 
-        # Desenha as mãos dos jogadores - mais espaçadas
-        y_positions = [150, 580]
+        # Posições verticais relativas para suportar redimensionamento
+        y_positions = [int(self.height * 0.14), int(self.height * 0.54)]
 
         for player_idx in range(self.PLAYERS):
             y_pos = y_positions[player_idx]
@@ -252,8 +263,8 @@ class BlackjackGame:
             # Área do jogador com fundo
             player_area_height = 350
             pygame.draw.rect(self.screen, (0, 100, 0),
-                           (20, y_pos - 80, WIDTH - 40, player_area_height),
-                           border_radius=20)
+                             (20, y_pos - 80, self.width - 40, player_area_height),
+                             border_radius=20)
 
             # Borda da área do jogador
             if self.game_state == "PLAYING" and player_idx == self.current_player:
@@ -264,8 +275,8 @@ class BlackjackGame:
                 border_width = 3
 
             pygame.draw.rect(self.screen, border_color,
-                           (20, y_pos - 80, WIDTH - 40, player_area_height),
-                           border_width, border_radius=20)
+                             (20, y_pos - 80, self.width - 40, player_area_height),
+                             border_width, border_radius=20)
 
             # Nome do jogador - ACIMA da área das cartas
             player_name = f"JOGADOR {player_idx + 1}"
@@ -302,11 +313,11 @@ class BlackjackGame:
                 points_status = ""
 
             points_text = self.font_large.render(f"Pontos: {points}", True, points_color)
-            self.screen.blit(points_text, (WIDTH - 400, y_pos - 65))
+            self.screen.blit(points_text, (self.width - 400, y_pos - 65))
 
             if points_status:
                 status_text = self.font_medium.render(points_status, True, points_color)
-                self.screen.blit(status_text, (WIDTH - 400, y_pos - 30))
+                self.screen.blit(status_text, (self.width - 400, y_pos - 30))
 
             # Desenha as cartas - ABAIXO do nome
             x_offset = 50
@@ -348,8 +359,8 @@ class BlackjackGame:
         # Instruções - Painel no lado direito inferior
         if self.game_state == "PLAYING":
             # Fundo do painel de instruções - reposicionado
-            panel_x = WIDTH - 450
-            panel_y = HEIGHT - 200
+            panel_x = self.width - 450
+            panel_y = self.height - 200
             panel_rect = pygame.Rect(panel_x, panel_y, 420, 180)
             pygame.draw.rect(self.screen, (0, 0, 0, 200), panel_rect, border_radius=15)
             pygame.draw.rect(self.screen, YELLOW, panel_rect, 3, border_radius=15)
@@ -373,11 +384,11 @@ class BlackjackGame:
                 y += 30
 
         elif self.game_state == "FINISHED":
-            # Painel de vencedor 
-            panel_width = 800
+            # Painel de vencedor
+            panel_width = min(800, self.width - 100)
             panel_height = 300
-            panel_x = WIDTH // 2 - panel_width // 2
-            panel_y = HEIGHT // 2 - panel_height // 2
+            panel_x = self.width // 2 - panel_width // 2
+            panel_y = self.height // 2 - panel_height // 2
 
             # Fundo do painel
             panel_rect = pygame.Rect(panel_x, panel_y, panel_width, panel_height)
@@ -389,7 +400,7 @@ class BlackjackGame:
                 f"🏆 VENCEDOR: JOGADOR {self.board[0][0] + 1}! 🏆",
                 True, YELLOW
             )
-            winner_rect = winner_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 40))
+            winner_rect = winner_text.get_rect(center=(self.width // 2, self.height // 2 - 40))
             self.screen.blit(winner_text, winner_rect)
 
             # Placar
@@ -398,10 +409,10 @@ class BlackjackGame:
                     f"Jogador {player + 1}: {score} pontos",
                     True, WHITE
                 )
-                self.screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, HEIGHT // 2 + 20 + idx * 40))
+                self.screen.blit(score_text, (self.width // 2 - score_text.get_width() // 2, self.height // 2 + 20 + idx * 40))
 
             restart_text = self.font_small.render("Pressione ESC para sair", True, WHITE)
-            self.screen.blit(restart_text, (WIDTH // 2 - restart_text.get_width() // 2, HEIGHT // 2 + 120))
+            self.screen.blit(restart_text, (self.width // 2 - restart_text.get_width() // 2, self.height // 2 + 120))
 
         pygame.display.flip()
 
