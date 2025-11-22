@@ -200,27 +200,61 @@ class BlackjackGame:
                 print(f"Split não permitido: precisa ter exatamente 2 cartas (tem {len(player_hand[0])})")
 
     def reveal_all_cards(self):
-        """Revela todas as cartas e calcula vencedor"""
+        """Revela todas as cartas, calcula pontuações reais e determina vencedor."""
         print("\nRevelando todas as cartas...")
-        self.board = [[i, 0] for i in range(self.PLAYERS)]
+        # board: [player_index, melhor_pontuacao, lista_pontuacoes_mãos, bust_flag]
+        self.board = []
 
         for index, hand in enumerate(self.hands):
             print(f"\nJogador {index + 1}:")
+            mao_scores = []
             for hand_idx, chance in enumerate(hand):
-                # Força a revelação de todas as cartas
+                # Revela todas as cartas
                 for carta in chance:
                     if not carta.isRevealed():
                         carta.reveal_card()
                         print(f"  Revelando: {carta.show_card()}")
-
                 points = revealCards(chance)
-                self.board[index][1] += points - 21 if points < 21 else 21 - points
+                mao_scores.append(points)
                 print(f"  Mão {hand_idx + 1}: {points} pontos")
 
-        self.board.sort(key=lambda x: -x[1])
+            # Seleciona melhor pontuação válida (<=21) ou, se todas estourarem, a menor acima de 21
+            validas = [p for p in mao_scores if p <= 21]
+            if validas:
+                melhor = max(validas)
+                bust = False
+            else:
+                melhor = min(mao_scores)  # menor estouro
+                bust = True
+
+            self.board.append([index, melhor, mao_scores, bust])
+
+        # Ordenação: primeiro não estourados por pontuação desc; depois estourados por pontuação asc
+        def sort_key(entry):
+            _, melhor, _, bust = entry
+            return (bust, -melhor if not bust else melhor)
+
+        self.board.sort(key=sort_key)
         self.game_state = "FINISHED"
-        print(f"\n🏆 Vencedor: Jogador {self.board[0][0] + 1}")
-        print(f"Placar: {self.board}")
+
+        # Determina vencedores (possível empate)
+        top = [e for e in self.board if not e[3]]  # não estourados
+        if top:
+            melhor_valor = top[0][1]
+            vencedores = [e[0] for e in top if e[1] == melhor_valor]
+        else:
+            # todos estouraram, menor estouro vence
+            melhor_valor = self.board[0][1]
+            vencedores = [e[0] for e in self.board if e[1] == melhor_valor]
+
+        if len(vencedores) == 1:
+            print(f"\n🏆 Vencedor: Jogador {vencedores[0] + 1} com {melhor_valor} pontos")
+        else:
+            nomes = ', '.join([str(v+1) for v in vencedores])
+            print(f"\n🤝 Empate entre jogadores: {nomes} com {melhor_valor} pontos")
+        print("Placar detalhado:")
+        for idx, melhor, lista, bust in self.board:
+            print(f" Jogador {idx+1}: mãos={lista} melhor={melhor}{' (estourou)' if bust else ''}")
 
     def draw(self):
         """Desenha todos os elementos na tela"""
@@ -396,19 +430,51 @@ class BlackjackGame:
             pygame.draw.rect(self.screen, YELLOW, panel_rect, 5, border_radius=20)
 
             # Texto de vencedor
+            # Lógica de empate ou vencedor único
+            top_non_bust = [e for e in self.board if not e[3]]
+            if top_non_bust:
+                melhor_valor = top_non_bust[0][1]
+                vencedores = [e for e in top_non_bust if e[1] == melhor_valor]
+            else:
+                melhor_valor = self.board[0][1]
+                vencedores = [e for e in self.board if e[1] == melhor_valor]
+
+            # Usa apenas caracteres ASCII seguros (emoji pode virar '?')
+            if len(vencedores) == 1:
+                vencedor_str = f"=== VENCEDOR: JOGADOR {vencedores[0][0] + 1} ==="
+            else:
+                nomes = ', '.join(str(e[0]+1) for e in vencedores)
+                vencedor_str = f"=== EMPATE: JOGADORES {nomes} ==="
+
             winner_text = self.font_large.render(
-                f"🏆 VENCEDOR: JOGADOR {self.board[0][0] + 1}! 🏆",
+                vencedor_str,
                 True, YELLOW
             )
             winner_rect = winner_text.get_rect(center=(self.width // 2, self.height // 2 - 40))
             self.screen.blit(winner_text, winner_rect)
 
             # Placar
-            for idx, (player, score) in enumerate(self.board):
-                score_text = self.font_medium.render(
-                    f"Jogador {player + 1}: {score} pontos",
-                    True, WHITE
-                )
+            # Lista detalhada das pontuações formatadas
+            for idx, entry in enumerate(self.board):
+                player, melhor, lista, bust = entry
+                if len(lista) == 1:
+                    base = f"Jogador {player + 1}: {melhor} pontos"
+                else:
+                    mãos_fmt = " | ".join(f"Mão {i+1}: {p}" for i, p in enumerate(lista))
+                    base = f"Jogador {player + 1}: {mãos_fmt} (melhor: {melhor})"
+
+                if bust and all(p > 21 for p in lista):
+                    status = " - ESTOUROU"
+                    color = RED
+                elif melhor == 21 and not bust:
+                    status = " - BLACKJACK!"
+                    color = YELLOW
+                else:
+                    status = ""
+                    color = WHITE
+
+                linha = (base + status).strip()
+                score_text = self.font_medium.render(linha, True, color)
                 self.screen.blit(score_text, (self.width // 2 - score_text.get_width() // 2, self.height // 2 + 20 + idx * 40))
 
             restart_text = self.font_small.render("Pressione ESC para sair", True, WHITE)
