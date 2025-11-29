@@ -531,16 +531,21 @@ class BlackjackGame:
         pygame.display.flip()
 
     def check_initial_blackjack(self):
-        """Verifica se algum jogador já inicia com blackjack (21 nas duas cartas iniciais)."""
+        """Verifica blackjack inicial apenas se AS DUAS cartas estiverem reveladas.
+        Antes estava contando a carta virada, encerrando a partida indevidamente.
+        Agora só finaliza se houver exatamente 2 cartas reveladas somando 21."""
         if self.game_state != "PLAYING":
             return
         for idx, player_hand in enumerate(self.hands):
             chance = player_hand[0]
             total = 0
+            reveladas = 0
             for carta in chance:
-                total += evaluateCardValue(carta.getValue(), total)
-            if total == 21:
-                print(f"\nBlackjack inicial do Jogador {idx + 1}! Finalizando jogo.")
+                if carta.isRevealed():
+                    total += evaluateCardValue(carta.getValue(), total)
+                    reveladas += 1
+            if reveladas == 2 and total == 21:
+                print(f"\nBlackjack inicial (ambas reveladas) do Jogador {idx + 1}! Finalizando jogo.")
                 self.reveal_all_cards()
                 break
 
