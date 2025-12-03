@@ -74,10 +74,30 @@ class BlackjackGame:
         self.card_images = {}
         self.load_card_images()
         try:
-            self.card_back = pygame.image.load("Cartas/fundo.png")
-            self.card_back = pygame.transform.scale(self.card_back, (120, 180))
+            self.card_back = pygame.image.load("Cartas/fundo.png").convert_alpha()
+            self.card_back = pygame.transform.smoothscale(self.card_back, (120, 180))
         except Exception:
             self.card_back = None
+        # add: load icons
+        self.icon_trophy = None
+        self.icon_blackjack_raw = None
+        self.icon_blackjack_panel = None  # used in end-game panel and status
+        self.icon_blackjack_header = None  # used in top-center header
+        try:
+            _t = pygame.image.load("Icones/trophy.png").convert_alpha()
+            self.icon_trophy = pygame.transform.smoothscale(_t, (64, 64))
+        except Exception:
+            self.icon_trophy = None
+        try:
+            _bj = pygame.image.load("Icones/blackjack.png").convert_alpha()
+            self.icon_blackjack_raw = _bj
+            # create high-quality variants from original
+            self.icon_blackjack_panel = pygame.transform.smoothscale(_bj, (120, 60))
+            self.icon_blackjack_header = pygame.transform.smoothscale(_bj, (240, 120))
+        except Exception:
+            self.icon_blackjack_raw = None
+            self.icon_blackjack_panel = None
+            self.icon_blackjack_header = None
 
         # Estado do jogo
         self.PLAYERS = 2
@@ -121,15 +141,15 @@ class BlackjackGame:
         self.check_initial_blackjack()
 
     def load_card_images(self):
-        """Carrega todas as imagens de cartas PNG"""
+        """Carrega todas as imagens de cartas PNG com transparência e escala suave"""
         print("Carregando imagens de cartas...")
         for root, dirs, files in os.walk("Cartas"):
             for file in files:
                 if file.endswith(".png") and file != "fundo.png":
                     path = os.path.join(root, file)
                     try:
-                        img = pygame.image.load(path)
-                        img = pygame.transform.scale(img, (120, 180))
+                        img = pygame.image.load(path).convert_alpha()
+                        img = pygame.transform.smoothscale(img, (120, 180))
                         self.card_images[file] = img
                     except Exception as e:
                         print(f"Erro ao carregar {file}: {e}")
@@ -307,12 +327,17 @@ class BlackjackGame:
         """Desenha todos os elementos na tela"""
         self.screen.fill(GREEN)
 
-        # Título com fundo (usa midtop para evitar corte superior)
-        title = self.font_large.render("♠ BLACKJACK ♥", True, YELLOW)
-        title_rect = title.get_rect(midtop=(self.width // 2, 10))
-        bg_rect = title_rect.inflate(40, 20)
-        pygame.draw.rect(self.screen, BLACK, bg_rect, border_radius=10)
-        self.screen.blit(title, title_rect)
+        # Título (ícone preparado, mas desenhado por último para ficar acima de tudo)
+        header_img = None
+        header_rect = None
+        if self.icon_blackjack_header is not None:
+            header_img = self.icon_blackjack_header
+            header_rect = header_img.get_rect()
+            header_rect.midtop = (self.width // 2, 10)
+        else:
+            title = self.font_large.render("\u2660 BLACKJACK \u2665", True, YELLOW)
+            header_img = title
+            header_rect = title.get_rect(midtop=(self.width // 2, 10))
 
         # Desenha o cava (monte de cartas) - mais bonito
         if self.card_back:
@@ -397,6 +422,7 @@ class BlackjackGame:
             points_text = self.font_large.render(f"Pontos: {points}", True, points_color)
             self.screen.blit(points_text, (self.width - 400, y_pos - 65))
 
+            # status: show text only in PLAYING mode (no blackjack icon near points)
             if points_status:
                 status_text = self.font_medium.render(points_status, True, points_color)
                 self.screen.blit(status_text, (self.width - 400, y_pos - 30))
@@ -486,47 +512,49 @@ class BlackjackGame:
             else:
                 melhor_valor = self.board[0][1]
                 vencedores = [e for e in self.board if e[1] == melhor_valor]
-
-            # Usa apenas caracteres ASCII seguros (emoji pode virar '?')
+            # winner string without ===; we'll draw trophies instead
             if len(vencedores) == 1:
-                vencedor_str = f"=== VENCEDOR: JOGADOR {vencedores[0][0] + 1} ==="
+                vencedor_str = f"VENCEDOR: JOGADOR {vencedores[0][0] + 1}"
             else:
                 nomes = ', '.join(str(e[0]+1) for e in vencedores)
-                vencedor_str = f"=== EMPATE: JOGADORES {nomes} ==="
-
-            winner_text = self.font_large.render(
-                vencedor_str,
-                True, YELLOW
-            )
+                vencedor_str = f"EMPATE: JOGADORES {nomes}"
+            winner_text = self.font_large.render(vencedor_str, True, YELLOW)
             winner_rect = winner_text.get_rect(center=(self.width // 2, self.height // 2 - 40))
             self.screen.blit(winner_text, winner_rect)
+            # draw trophies left/right of winner - vertically centered with the text
+            if self.icon_trophy is not None:
+                ty = winner_rect.centery - self.icon_trophy.get_height() // 2
+                left_tx = winner_rect.left - (self.icon_trophy.get_width() + 16)
+                right_tx = winner_rect.right + 16
+                self.screen.blit(self.icon_trophy, (left_tx, ty))
+                self.screen.blit(self.icon_trophy, (right_tx, ty))
 
-            # Placar
-            # Lista detalhada das pontuações formatadas
+            # scoreboard lines
             for idx, entry in enumerate(self.board):
                 player, melhor, lista, bust = entry
                 if len(lista) == 1:
-                    base = f"Jogador {player + 1}: {melhor} pontos"
+                    base = f"Jogador {player + 1}: {lista[0]} pontos"
                 else:
-                    mãos_fmt = " | ".join(f"Mão {i+1}: {p}" for i, p in enumerate(lista))
-                    base = f"Jogador {player + 1}: {mãos_fmt} (melhor: {melhor})"
-
+                    base = f"Jogador {player + 1}: mãos {lista} | melhor {melhor}"
                 if bust and all(p > 21 for p in lista):
-                    status = " - ESTOUROU"
+                    status = ""  # removed '(estourou)'
                     color = RED
                 elif melhor == 21 and not bust:
-                    status = " - BLACKJACK!"
+                    status = ""
                     color = YELLOW
                 else:
                     status = ""
                     color = WHITE
-
                 linha = (base + status).strip()
                 score_text = self.font_medium.render(linha, True, color)
                 self.screen.blit(score_text, (self.width // 2 - score_text.get_width() // 2, self.height // 2 + 20 + idx * 40))
 
             restart_text = self.font_small.render("ESC: sair  |  R: jogar novamente", True, WHITE)
             self.screen.blit(restart_text, (self.width // 2 - restart_text.get_width() // 2, self.height // 2 + 120))
+
+        # Desenha o título/ícone por último para ficar acima de todos
+        if header_img is not None and header_rect is not None:
+            self.screen.blit(header_img, header_rect)
 
         pygame.display.flip()
 
