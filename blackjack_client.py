@@ -7,8 +7,13 @@ from network import Network
 from regras import card
 from blackjack_game import BlackjackGame
 
+with open("hostlocator.txt", "r+") as hostlocator:
+    IP = hostlocator.readline().replace('\n', '')
+    PORT = hostlocator.readline().replace('\n', '')
+
 class NetworkGame(BlackjackGame):
-    def __init__(self, ip, port):
+    def __init__(self, ip = IP, port = PORT):
+        print(f'{ip}, {port}')
         # 1. Conexão TCP
         self.net = Network(ip, port)
         if not self.net.connect():
@@ -160,7 +165,8 @@ class NetworkGame(BlackjackGame):
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("Uso: python blackjack_client.py <IP> <PORTA>")
+        game = NetworkGame()
+        game.run()
     else:
         game = NetworkGame(sys.argv[1], sys.argv[2])
         game.run()

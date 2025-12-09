@@ -126,7 +126,7 @@ def handle_client(conn, player_id):
                         # Processamento da lógica do jogo
                         if action == "HIT":
                             dealCards(player_hand, game_data["deck"])
-                            if calculateFaceUp(player_hand) > 21:
+                            if max(calculateFaceUp(player_hand)) > 21:
                                 game_data["players_done"][player_id] = True
                                 if not all(game_data["players_done"]):
                                     game_data["current_player"] = (game_data["current_player"] + 1) % 2
@@ -192,6 +192,8 @@ def start_server():
     print(f"--- SERVIDOR ONLINE ---")
     print(f"IP: {socket.gethostbyname(socket.gethostname())}")
     print(f"PORTA: {PORT}")
+    with open("hostlocator.txt", "w") as hostlocator:
+        hostlocator.write(f"{socket.gethostbyname(socket.gethostname())}\n{PORT}")
 
     while True:
         conn, addr = server.accept()

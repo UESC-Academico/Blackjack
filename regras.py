@@ -4,12 +4,12 @@ import time
 # Inicializa o gerador de números aleatórios com timestamp
 random.seed(time.time())
 
-def evaluateCardValue(card: str, handValue:int) -> int:
+def evaluateCardValue(card: str, handValue:int = 0) -> int:
     extra = ['J', 'Q', 'K']
     if card in extra:
         return 10
     elif card == 'A':
-        if (handValue + 11) <= 21:
+        if (handValue + 11) < 21:
             return 11
         return 1
     elif card.lower() == 'joker':
@@ -94,7 +94,7 @@ def calculateFaceUp(player_hand: list[list[card]]) -> int:
         for cart in player_hand[chance]:
             if cart.isRevealed():
                 points[chance] += evaluateCardValue(cart.getValue(), points[chance])
-    return min(points)
+    return points
 
 def dealCards(player_hand: list[list[card]], deck: list) -> None:
             for chance in player_hand:
@@ -102,20 +102,26 @@ def dealCards(player_hand: list[list[card]], deck: list) -> None:
                 showHand(chance)
 
 def splitCards(player_hand: list[list[card]], deck: list) -> None:
-        # Remove a última carta da primeira mão e cria uma nova mão com ela
-        carta_removida = player_hand[0].pop(-1)
-        # Adiciona uma nova carta para cada mão
-        player_hand[0].append(card(deck.pop(0), True))  # Nova carta para primeira mão
-        player_hand.append([carta_removida, card(deck.pop(0), True)])  # Nova mão com carta removida + nova carta
+        if(evaluateCardValue(player_hand[0][1].getValue()) != evaluateCardValue(player_hand[0][2].getValue())):
+            print("Não pode dar split")
+        else:
+            # Remove a última carta da primeira mão e cria uma nova mão com ela
+            carta_removida = player_hand[0].pop(-1)
+            # Adiciona uma nova carta para cada mão
+            #player_hand[0].append(card(deck.pop(0), True))  # Nova carta para primeira mão
+            player_hand.append([card(deck.pop(0), False), carta_removida])  # Nova mão com carta removida + nova carta
 
 def options(player_hand: list[list[card]], deck:list) -> None:
-    while input("\nDeal? Y/N\n->")[0].lower() == "y" and calculateFaceUp(player_hand) < 21:
+    while input("\nDeal? Y/N\n->")[0].lower() == "y" and min(calculateFaceUp(player_hand)) < 21:
         dealCards(player_hand, deck)
         if len(player_hand) == 1 and len(player_hand[0]) == 3:
             if input("\nSplit? Y/N\n->")[0].lower() == "y":
-                splitCards(player_hand, deck)
-                for chance in player_hand:
-                    showHand(chance)
+                if(evaluateCardValue(player_hand[0][1].getValue()) == evaluateCardValue(player_hand[0][2].getValue())):
+                    splitCards(player_hand, deck)
+                    for chance in player_hand:
+                        showHand(chance)
+                else:
+                    print("Não é possível dar Split")
 
 def showHand(hand: list[card]):
     for cart in hand:
