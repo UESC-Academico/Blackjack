@@ -188,8 +188,8 @@ class BlackjackGame:
                 elif event.key == pygame.K_r and self.game_state == "FINISHED":
                     self.reset_game()
                 elif event.key == pygame.K_SPACE and self.game_state == "PLAYING":
-                    self.deal_card(alternate=True)
-                elif event.key == pygame.K_RETURN and self.game_state == "PLAYING":
+                    self.deal_card(alternate=False)
+                elif (event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER) and self.game_state == "PLAYING":
                     self.pass_turn()
                 elif event.key == pygame.K_s and self.game_state == "PLAYING":
                     self.try_split()
@@ -206,6 +206,7 @@ class BlackjackGame:
         if calculateFaceUp(self.hands[self.current_player]) < 21:
             dealCards(self.hands[self.current_player], self.deck)
         pontos = calculateFaceUp(self.hands[self.current_player])
+        '''
         # Finalização imediata em blackjack ou estouro
         if pontos == 21:
             print(f"\nBlackjack do Jogador {self.current_player + 1}! Finalizando jogo.")
@@ -215,8 +216,10 @@ class BlackjackGame:
             print(f"\nJogador {self.current_player + 1} estourou ({pontos}). Jogo finalizado.")
             self.reveal_all_cards()
             return
+        '''
         if pontos >= 21:
             self.player_done[self.current_player] = True
+            self.advance_turn()
         if alternate and self.game_state == "PLAYING":
             self.advance_turn()
 
@@ -249,9 +252,9 @@ class BlackjackGame:
         # 1. Deve ter apenas uma mão (não pode split após split)
         # 2. A mão deve ter exatamente 2 cartas
         # 3. As duas cartas devem ter o mesmo valor
-        if len(player_hand) == 1 and len(player_hand[0]) == 2:
-            carta1 = player_hand[0][0].getValue()
-            carta2 = player_hand[0][1].getValue()
+        if len(player_hand) == 1 and len(player_hand[0]) == 3:
+            carta1 = player_hand[0][1].getValue()
+            carta2 = player_hand[0][2].getValue()
 
             # Considera J, Q, K como iguais (todos valem 10)
             def normalize_value(val):
@@ -271,7 +274,7 @@ class BlackjackGame:
                 print(f"Split não permitido: precisa ter exatamente 2 cartas (tem {len(player_hand[0])})")
 
     def reveal_all_cards(self):
-        """Calcula pontuações apenas com cartas reveladas e determina vencedor (não revela cartas viradas)."""
+        """Calcula pontuações apenas com cartas reveladas e determina vencedor (não revela cartas viradas).""" #Precisa revelar
         print("\nCalculando pontuação apenas de cartas reveladas...")
         self.board = []  # [player_index, melhor_visivel, lista_pontos_maos_visiveis, bust_flag]
 
@@ -279,6 +282,9 @@ class BlackjackGame:
             total = 0
             for c in chance:
                 if c.isRevealed():
+                    total += evaluateCardValue(c.getValue(), total)
+                else:
+                    c.reveal_card()
                     total += evaluateCardValue(c.getValue(), total)
             return total
 
@@ -409,16 +415,16 @@ class BlackjackGame:
                 points = calculateFaceUp(self.hands[player_idx])
 
             # Cor da pontuação baseada no valor
-            if points > 21:
+            if points >= 21:
                 points_color = RED
                 points_status = "ESTOUROU!"
-            elif points == 21:
+            elif points > 15:
                 points_color = YELLOW
-                points_status = "BLACKJACK!"
+                points_status = ""
             else:
                 points_color = WHITE
                 points_status = ""
-
+            
             points_text = self.font_large.render(f"Pontos: {points}", True, points_color)
             self.screen.blit(points_text, (self.width - 400, y_pos - 65))
 

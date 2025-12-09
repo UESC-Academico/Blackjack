@@ -105,8 +105,8 @@ def splitCards(player_hand: list[list[card]], deck: list) -> None:
         # Remove a última carta da primeira mão e cria uma nova mão com ela
         carta_removida = player_hand[0].pop(-1)
         # Adiciona uma nova carta para cada mão
-        player_hand[0].append(card(deck.pop(0), True))  # Nova carta para primeira mão
-        player_hand.append([carta_removida, card(deck.pop(0), True)])  # Nova mão com carta removida + nova carta
+        #player_hand[0].append(card(deck.pop(0), True))  # Nova carta para primeira mão
+        player_hand.append([card(deck.pop(0), False), carta_removida])  # Nova mão com carta removida + nova carta
 
 def options(player_hand: list[list[card]], deck:list) -> None:
     while input("\nDeal? Y/N\n->")[0].lower() == "y" and calculateFaceUp(player_hand) < 21:

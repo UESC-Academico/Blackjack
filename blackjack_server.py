@@ -192,6 +192,8 @@ def start_server():
     print(f"--- SERVIDOR ONLINE ---")
     print(f"IP: {socket.gethostbyname(socket.gethostname())}")
     print(f"PORTA: {PORT}")
+    with open("hostlocator.txt", "w") as hostlocator:
+        hostlocator.write(f"{socket.gethostbyname(socket.gethostname())}\n{PORT}")
 
     while True:
         conn, addr = server.accept()
