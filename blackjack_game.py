@@ -217,7 +217,7 @@ class BlackjackGame:
             self.reveal_all_cards()
             return
         '''
-        if max(pontos) >= 21:
+        if min(pontos) >= 21:
             self.player_done[self.current_player] = True
             self.advance_turn()
         if alternate and self.game_state == "PLAYING":

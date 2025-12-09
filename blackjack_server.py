@@ -126,7 +126,7 @@ def handle_client(conn, player_id):
                         # Processamento da lógica do jogo
                         if action == "HIT":
                             dealCards(player_hand, game_data["deck"])
-                            if calculateFaceUp(player_hand) > 21:
+                            if max(calculateFaceUp(player_hand)) > 21:
                                 game_data["players_done"][player_id] = True
                                 if not all(game_data["players_done"]):
                                     game_data["current_player"] = (game_data["current_player"] + 1) % 2
