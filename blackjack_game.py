@@ -203,7 +203,7 @@ class BlackjackGame:
         """Distribui carta ao jogador atual; alterna turno se alternate=True."""
         if self.player_done[self.current_player]:
             return
-        if calculateFaceUp(self.hands[self.current_player]) < 21:
+        if min(calculateFaceUp(self.hands[self.current_player])) < 21:
             dealCards(self.hands[self.current_player], self.deck)
         pontos = calculateFaceUp(self.hands[self.current_player])
         '''
@@ -217,7 +217,7 @@ class BlackjackGame:
             self.reveal_all_cards()
             return
         '''
-        if pontos >= 21:
+        if max(pontos) >= 21:
             self.player_done[self.current_player] = True
             self.advance_turn()
         if alternate and self.game_state == "PLAYING":
@@ -283,7 +283,8 @@ class BlackjackGame:
             for c in chance:
                 if c.isRevealed():
                     total += evaluateCardValue(c.getValue(), total)
-                else:
+            for c in chance:
+                if not c.isRevealed():
                     c.reveal_card()
                     total += evaluateCardValue(c.getValue(), total)
             return total
@@ -376,7 +377,7 @@ class BlackjackGame:
             # Área do jogador com fundo
             player_area_height = 350
             pygame.draw.rect(self.screen, (0, 100, 0),
-                             (20, y_pos - 80, self.width - 40, player_area_height),
+                             (20, y_pos - 90, self.width - 40, player_area_height),
                              border_radius=20)
 
             # Borda da área do jogador
@@ -388,7 +389,7 @@ class BlackjackGame:
                 border_width = 3
 
             pygame.draw.rect(self.screen, border_color,
-                             (20, y_pos - 80, self.width - 40, player_area_height),
+                             (20, y_pos - 90, self.width - 40, player_area_height),
                              border_width, border_radius=20)
 
             # Nome do jogador - ACIMA da área das cartas
@@ -406,26 +407,30 @@ class BlackjackGame:
             # Se o jogo terminou, calcula com todas as cartas reveladas
             if self.game_state == "FINISHED":
                 # Usa somente cartas reveladas
-                points = 0
-                for chance in self.hands[player_idx]:
+                points = [0 for _ in self.hands[player_idx]]
+                for indx, chance in enumerate(self.hands[player_idx]):
                     for carta in chance:
                         if carta.isRevealed():
-                            points += evaluateCardValue(carta.getValue(), points)
+                            points[indx] += evaluateCardValue(carta.getValue(), points[indx])
             else:
-                points = calculateFaceUp(self.hands[player_idx])
+                    points = calculateFaceUp(self.hands[player_idx])
 
             # Cor da pontuação baseada no valor
-            if points >= 21:
-                points_color = RED
-                points_status = "ESTOUROU!"
-            elif points > 15:
-                points_color = YELLOW
-                points_status = ""
-            else:
-                points_color = WHITE
-                points_status = ""
-            
-            points_text = self.font_large.render(f"Pontos: {points}", True, points_color)
+            for pts in points:
+                if pts >= 21:
+                    points_color = RED
+                    points_status = "ESTOUROU!"
+                elif pts > 15:
+                    points_color = YELLOW
+                    points_status = ""
+                else:
+                    points_color = WHITE
+                    points_status = ""
+
+            points_str = str(points[0])
+            if len(points) > 1:
+                points_str = points_str + ", " + str(points[1])
+            points_text = self.font_large.render(f"Pontos: {points_str}", True, points_color)
             self.screen.blit(points_text, (self.width - 400, y_pos - 65))
 
             # status: show text only in PLAYING mode (no blackjack icon near points)
@@ -468,7 +473,7 @@ class BlackjackGame:
                             pygame.draw.rect(self.screen, BLUE, (card_x, card_y, 120, 180), border_radius=10)
                             pygame.draw.rect(self.screen, BLACK, (card_x, card_y, 120, 180), 2, border_radius=10)
 
-                x_offset += len(hand) * 140 + 80
+                x_offset += len(hand) * 140 + 90
 
         # Instruções - Painel no lado direito inferior
         if self.game_state == "PLAYING":

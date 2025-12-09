@@ -94,7 +94,7 @@ def calculateFaceUp(player_hand: list[list[card]]) -> int:
         for cart in player_hand[chance]:
             if cart.isRevealed():
                 points[chance] += evaluateCardValue(cart.getValue(), points[chance])
-    return min(points)
+    return points
 
 def dealCards(player_hand: list[list[card]], deck: list) -> None:
             for chance in player_hand:
