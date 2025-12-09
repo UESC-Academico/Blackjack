@@ -190,10 +190,28 @@ def start_server():
 
     server.listen()
     print(f"--- SERVIDOR ONLINE ---")
-    print(f"IP: {socket.gethostbyname(socket.gethostname())}")
+
+    # Descobrir IP local de forma robusta (evita 127.0.1.1)
+    def get_local_ip():
+        try:
+            # Truque UDP: não envia nada de fato, só descobre a interface usada
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+            return ip
+        except Exception:
+            # Fallback: tenta hostname
+            try:
+                return socket.gethostbyname(socket.gethostname())
+            except Exception:
+                return "127.0.0.1"
+
+    local_ip = get_local_ip()
+    print(f"IP: {local_ip}")
     print(f"PORTA: {PORT}")
     with open("hostlocator.txt", "w") as hostlocator:
-        hostlocator.write(f"{socket.gethostbyname(socket.gethostname())}\n{PORT}")
+        hostlocator.write(f"{local_ip}\n{PORT}")
 
     while True:
         conn, addr = server.accept()
