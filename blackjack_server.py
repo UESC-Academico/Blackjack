@@ -170,7 +170,7 @@ def handle_client(conn, player_id):
             game_data["players_done"][player_id] = True
             if all(game_data["players_done"]): game_data["game_over"] = True
             broadcast_state()
-
+            
     try: conn.close()
     except: pass
 
