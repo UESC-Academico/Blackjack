@@ -9,7 +9,7 @@ def evaluateCardValue(card: str, handValue:int = 0) -> int:
     if card in extra:
         return 10
     elif card == 'A':
-        if (handValue + 11) < 21:
+        if (handValue + 11) <= 21:
             return 11
         return 1
     elif card.lower() == 'joker':
@@ -92,8 +92,12 @@ def calculateFaceUp(player_hand: list[list[card]]) -> int:
     points = [0 for _ in range(len(player_hand))]
     for chance in range(len(player_hand)):
         for cart in player_hand[chance]:
-            if cart.isRevealed():
-                points[chance] += evaluateCardValue(cart.getValue(), points[chance])
+            if cart.isRevealed() :
+                if cart.getValue() == 'A':
+                    points[chance] += 1
+                else:
+                    points[chance] += evaluateCardValue(cart.getValue(), points[chance])
+            
     return points
 
 def dealCards(player_hand: list[list[card]], deck: list) -> None:

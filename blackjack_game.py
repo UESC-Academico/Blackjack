@@ -10,7 +10,8 @@ pygame.init()
 # Constantes
 FPS = 60
 MIN_WIDTH = 800
-MIN_HEIGHT = 600
+MIN_HEIGHT = 750
+IDENTIFIER = 0
 
 # Cores
 WHITE = (255, 255, 255)
@@ -63,6 +64,7 @@ class BlackjackGame:
         info = pygame.display.Info()
         initial_w = max(MIN_WIDTH, int(info.current_w * 0.8))
         initial_h = max(MIN_HEIGHT, int(info.current_h * 0.8))
+        self.identifier = 0
         self.width = initial_w
         self.height = initial_h
         self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
@@ -122,6 +124,9 @@ class BlackjackGame:
 
         # Checa blackjack inicial
         self.check_initial_blackjack()
+
+    def setId(self, id):
+        self.identifier = id
 
     def reset_game(self):
         """Reinicia o jogo para uma nova partida."""
@@ -280,13 +285,20 @@ class BlackjackGame:
 
         def pontos_visiveis_mao(chance):
             total = 0
+            aces = 0
             for c in chance:
-                if c.isRevealed():
-                    total += evaluateCardValue(c.getValue(), total)
-            for c in chance:
+                #Revela a carta se ela estiver virada para baixo
                 if not c.isRevealed():
                     c.reveal_card()
+                #Não contabiliza ases no início por terem um valor dinâmico
+                if c.getValue() != 'A':
                     total += evaluateCardValue(c.getValue(), total)
+                #Conta quantos ases tem na mão do jogador
+                else:
+                    aces += 1
+            #Contabiliza os Ases
+            for _ in range(aces):
+                total += evaluateCardValue('A', total)
             return total
 
         for index, hand in enumerate(self.hands):
@@ -330,7 +342,7 @@ class BlackjackGame:
         for idx, melhor, lista, bust in self.board:
             print(f" Jogador {idx+1}: mãos={lista} melhor={melhor}{' (estourou)' if bust else ''}")
 
-    def draw(self):
+    def draw(self, identifier = 0, preferedName = None):
         """Desenha todos os elementos na tela"""
         self.screen.fill(GREEN)
 
@@ -372,7 +384,7 @@ class BlackjackGame:
         y_positions = [int(self.height * 0.14), int(self.height * 0.54)]
 
         for player_idx in range(self.PLAYERS):
-            y_pos = y_positions[player_idx]
+            y_pos = y_positions[player_idx] + 80*player_idx
 
             # Área do jogador com fundo
             player_area_height = 350
@@ -393,9 +405,16 @@ class BlackjackGame:
                              border_width, border_radius=20)
 
             # Nome do jogador - ACIMA da área das cartas
-            player_name = f"JOGADOR {player_idx + 1}"
+            if not preferedName or player_idx != identifier:
+                player_name = f"JOGADOR {player_idx + 1} {" (VOCÊ)" if player_idx == identifier else ""}"
+            else:
+                player_name = f"{preferedName}"
+                
             if self.game_state == "PLAYING" and player_idx == self.current_player:
-                player_name += " ⭐ SUA VEZ ⭐"
+                if player_idx == identifier:
+                    player_name += " ⭐ SUA VEZ ⭐"
+                else:
+                    player_name = "TURNO DE " + player_name
                 name_color = YELLOW
             else:
                 name_color = WHITE
@@ -413,11 +432,11 @@ class BlackjackGame:
                         if carta.isRevealed():
                             points[indx] += evaluateCardValue(carta.getValue(), points[indx])
             else:
-                    points = calculateFaceUp(self.hands[player_idx])
+                points = calculateFaceUp(self.hands[player_idx])
 
             # Cor da pontuação baseada no valor
             for pts in points:
-                if pts >= 21:
+                if pts > 21:
                     points_color = RED
                     points_status = "ESTOUROU!"
                 elif pts > 15:
@@ -525,7 +544,7 @@ class BlackjackGame:
                 vencedores = [e for e in self.board if e[1] == melhor_valor]
             # winner string without ===; we'll draw trophies instead
             if len(vencedores) == 1:
-                vencedor_str = f"VENCEDOR: JOGADOR {vencedores[0][0] + 1}"
+                vencedor_str = f"VENCEDOR: JOGADOR {vencedores[0][0] + 1} {"(VOCÊ)" if vencedores[0][0] == identifier else ""}"
             else:
                 nomes = ', '.join(str(e[0]+1) for e in vencedores)
                 vencedor_str = f"EMPATE: JOGADORES {nomes}"

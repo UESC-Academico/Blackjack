@@ -12,7 +12,7 @@ with open("hostlocator.txt", "r+") as hostlocator:
     PORT = hostlocator.readline().replace('\n', '')
 
 class NetworkGame(BlackjackGame):
-    def __init__(self, ip = IP, port = PORT):
+    def __init__(self, ip = IP, port = PORT, Name:str = None):
         print(f'{ip}, {port}')
         # 1. Conexão TCP
         self.net = Network(ip, port)
@@ -26,7 +26,7 @@ class NetworkGame(BlackjackGame):
         self.net.client.settimeout(5.0) 
         self.my_id = -1
         self.initial_state = None 
-        
+        self.preferedName = Name
         try:
             buffer = ""
             # Loop síncrono esperando identificação
@@ -141,7 +141,7 @@ class NetworkGame(BlackjackGame):
 
     def draw(self):
         """Renderização com feedback de turno"""
-        super().draw()
+        super().draw(identifier = self.my_id, preferedName = self.preferedName)
         if self.is_my_turn():
             try:
                 text_surf = self.font_large.render(" SUA VEZ! ", True, (255, 255, 0))
@@ -164,9 +164,12 @@ class NetworkGame(BlackjackGame):
         sys.exit()
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
+    if len(sys.argv) == 1:
         game = NetworkGame()
         game.run()
+    elif len(sys.argv) == 2:
+        game = NetworkGame(Name = sys.argv[1])
+        game.run()
     else:
-        game = NetworkGame(sys.argv[1], sys.argv[2])
+        game = NetworkGame(sys.argv[1], sys.argv[2], sys.argv[3])
         game.run()
