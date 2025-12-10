@@ -285,17 +285,20 @@ class BlackjackGame:
 
         def pontos_visiveis_mao(chance):
             total = 0
+            aces = 0
             for c in chance:
-                if c.isRevealed() and c.getValue() != 'A':
-                    total += evaluateCardValue(c.getValue(), total)
-            for c in chance:
-                if not c.isRevealed() :
+                #Revela a carta se ela estiver virada para baixo
+                if not c.isRevealed():
                     c.reveal_card()
-                    if c.getValue() != 'A':
-                        total += evaluateCardValue(c.getValue(), total)
-            for c in chance:
-                if c.getValue() == 'A':
+                #Não contabiliza ases no início por terem um valor dinâmico
+                if c.getValue() != 'A':
                     total += evaluateCardValue(c.getValue(), total)
+                #Conta quantos ases tem na mão do jogador
+                else:
+                    aces += 1
+            #Contabiliza os Ases
+            for _ in range(aces):
+                total += evaluateCardValue('A', total)
             return total
 
         for index, hand in enumerate(self.hands):
@@ -403,13 +406,15 @@ class BlackjackGame:
 
             # Nome do jogador - ACIMA da área das cartas
             if not preferedName or player_idx != identifier:
-                player_name = f"JOGADOR {player_idx + 1} {" (Você)" if player_idx == identifier else ""}"
+                player_name = f"JOGADOR {player_idx + 1} {" (VOCÊ)" if player_idx == identifier else ""}"
             else:
                 player_name = f"{preferedName}"
                 
             if self.game_state == "PLAYING" and player_idx == self.current_player:
                 if player_idx == identifier:
                     player_name += " ⭐ SUA VEZ ⭐"
+                else:
+                    player_name = "TURNO DE " + player_name
                 name_color = YELLOW
             else:
                 name_color = WHITE
