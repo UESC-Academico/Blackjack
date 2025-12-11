@@ -13,32 +13,32 @@ O foco central é a implementação da comunicação via Sockets na arquitetura 
 
 O projeto permite a execução de partidas de dois jogadores com as seguintes funcionalidades:
 
-Comunicação Cliente-Servidor para troca de ações de jogo e estados.
+  * Comunicação Cliente-Servidor para troca de ações de jogo e estados.
 
-Uso de cartas gráficas (PNG) e redimensionamento de janela.
+  * Uso de cartas gráficas (PNG) e redimensionamento de janela.
 
-Ações básicas do Blackjack: Hit (pedir carta), Stand (passar a vez) e Split (divisão).
+  * Ações básicas do Blackjack: Hit (pedir carta), Stand (passar a vez) e Split (divisão).
 
 ## Sobre o Jogo: Entendendo as regras
-O jogo possui apenas 2 participantes.
+  * O jogo possui apenas 2 participantes.
 
-Cada jogador possui turno único, não intercalado.
+  * Cada jogador possui turno único, não intercalado.
 
-Cada jogador recebe 2 cartas, uma virada para cima e outra para baixo.
+  * Cada jogador recebe 2 cartas, uma virada para cima e outra para baixo.
 
-No seu turno, cada jogador pode pedir cartas (Hit), a fim de aumentar a sua pontuação atual.
+  * No seu turno, cada jogador pode pedir cartas (Hit), a fim de aumentar a sua pontuação atual.
 
-O Split (divisão de mão) é permitido somente após a primeira jogada do turno, se o jogador tiver exatamente duas cartas de mesmo valor viradas para cima, dividindo a mão em dois jogos.
+  * O Split (divisão de mão) é permitido somente após a primeira jogada do turno, se o jogador tiver exatamente duas cartas de mesmo valor viradas para cima, dividindo a mão em dois jogos.
 
-Se um jogador estourar sua mão (>21) sem revelar a carta escondida, ele automaticamente perde a vez.
+  * Se um jogador estourar sua mão (>21) sem revelar a carta escondida, ele automaticamente perde a vez.
 
-O Jogador 1 pode passar seu turno a qualquer momento, não podendo mais realizar ações no jogo.
+  * O Jogador 1 pode passar seu turno a qualquer momento, não podendo mais realizar ações no jogo.
 
-Quando o Jogador 2 encerra seu turno, o jogo é finalizado e os pontos são contabilizados.
+  * Quando o Jogador 2 encerra seu turno, o jogo é finalizado e os pontos são contabilizados.
 
-Ao final, ganha o participante que chegou mais próximo de 21 pontos sem estourar.
+  * Ao final, ganha o participante que chegou mais próximo de 21 pontos sem estourar.
 
-Caso ambos tenham estourado, ganha aquele que estiver com uma mão mais próxima de 21 pontos
+  * Caso ambos tenham estourado, ganha aquele que estiver com uma mão mais próxima de 21 pontos
 
 ## Arquitetura e Protocolo de Rede 
 A aplicação utiliza a biblioteca socket do Python para estabelecer a comunicação em rede, priorizando a confiabilidade de transmissão do estado do jogo.
@@ -86,9 +86,9 @@ A aplicação utiliza a biblioteca socket do Python para estabelecer a comunica�
 
   1. Uma thread especifica é responsável por estabelecer as conexões com novos clients(handshake) criar novas threads especificas para cuidar dos dados de cada cliente
 
-  2. Depois de feito o handshake threads especificas para cada cliente serão criadas no método "handle_client" responsáveis por: Receber comandos enviados pelo jogador atraves do client, atualizar o estado do jogo de acordo com a jogada feita e retransmitir o novo estado no método "broadcast_state".
+  2. Depois de feito o handshake threads especificas para cada cliente serão criadas no método "handle_client" responsáveis por: Receber comandos enviados pelo jogador atraves do client, atualizar o estado do jogo de acordo com a jogada feita e retransmitir o novo estado no método ```broadcast_state```.
 
-  Para evitar erros de race conditions entre as threads é feito "game_lock = threading.Lock()" dessa forma caso ambos os jogadores apertem teclas no mesmo exato momento não ocorram bugs como dois jogadores recebendo exatamente a mesma carta
+  Para evitar erros de race conditions entre as threads é feito ```game_lock = threading.Lock()``` dessa forma caso ambos os jogadores apertem teclas no mesmo exato momento não ocorram bugs como dois jogadores recebendo exatamente a mesma carta
 
 ## Sobre o cliente: Entendendo o codigo do blackjack_client.py
 
