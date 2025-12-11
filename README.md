@@ -18,15 +18,15 @@ O projeto permite a execução de partidas de dois jogadores com as seguintes fu
   * Ações básicas do Blackjack: `Hit` (pedir carta), `Stand` (passar a vez) e `Split` (divisão).
 
 ## Sobre o Jogo: Entendendo as regras
-* O jogo possui apenas 2 participantes.
-* Cada jogador possui turno único, não intercalado.
-* Cada jogador recebe 2 cartas, uma virada para cima e outra para baixo.
-* No seu turno, cada jogador pode pedir cartas (Hit), a fim de aumentar a sua pontuação atual.
-* Somente após a primeira jogada do turno, se o jogador tiver exatamente duas cartas de mesmo valor viradas para cima na mão, ele pode pedir um Split, dividindo sua mão em dois jogos (montantes de baralho), contabilizando os pontos separadamente.
-* Se um jogador estourar sua mão sem revelar a carta escondida, ele automaticamente perde a vez.
-* O jogador 1 pode pedir para passar seu turno em qualquer momento, porém não poderá realizar mais ações no jogo. Iniciando, então, o turno do próximo jogador da mesa. Caso o jogador 2 encerre seu turno, o jogo é finalizado e os pontos contabilizados.
-* Ao final do jogo, ganha o participante que chegou mais próximo de 21 pontos sem estourar.
-* Caso ambos tenham estourado, ganha aquele que estiver com uma mão mais próxima de 21 pontos.
+  * O jogo possui apenas 2 participantes.
+  * Cada jogador possui turno único, não intercalado.
+  * Cada jogador recebe 2 cartas, uma virada para cima e outra para baixo.
+  * No seu turno, cada jogador pode pedir cartas (Hit), a fim de aumentar a sua pontuação atual.
+  * Somente após a primeira jogada do turno, se o jogador tiver exatamente duas cartas de mesmo valor viradas para cima na mão, ele pode pedir um Split, dividindo sua mão em dois jogos (montantes de baralho), contabilizando os pontos separadamente.
+  * Se um jogador estourar sua mão sem revelar a carta escondida, ele automaticamente perde a vez.
+  * O jogador 1 pode pedir para passar seu turno em qualquer momento, porém não poderá realizar mais ações no jogo. Iniciando, então, o turno do próximo jogador da mesa. Caso o jogador 2 encerre seu turno, o jogo é finalizado e os pontos contabilizados.
+  * Ao final do jogo, ganha o participante que chegou mais próximo de 21 pontos sem estourar.
+  * Caso ambos tenham estourado, ganha aquele que estiver com uma mão mais próxima de 21 pontos.
 
 ## Arquitetura de Rede
 
